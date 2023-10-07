@@ -1,0 +1,23 @@
+global
+        log /dev/log    local0
+	stats socket /run/haproxy/admin.sock mode 660 level admin
+
+defaults
+        log     global
+        mode    http
+        option  httplog
+	timeout connect  10s
+	timeout client  30s
+	timeout server  30s
+
+frontend th3gr00t-tech-frontend
+	bind *:80
+	bind *:443 ssl crt /etc/haproxy/certs/mydanny.tech.pem
+	http-request redirect scheme https unless { ssl_fc }
+	http-request set-header X-Forwarded-Proto https
+	default_backend mydanny-tech-backend
+
+backend mydanny-tech-backend
+	balance roundrobin
+	server 353258-web-01 54.160.78.36:80 check
+	server 353258-web-02 54.209.219.117:80 check
