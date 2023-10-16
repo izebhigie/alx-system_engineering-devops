@@ -1,0 +1,37 @@
+global
+  log     /dev/log local0
+  maxconn 2048
+  user    haproxy
+  group   haproxy
+  tune.ssl.default-dh-param 2048
+
+defaults
+  log     global
+  mode    http
+  option  httplog
+  option  dontlognull
+  retries 3
+  option  redispatch
+  timeout client 15s
+  timeout connect 10s
+  timeout server 15s
+  timeout http-request 10s
+  option forwardfor
+  option http-server-close
+
+frontend www-https
+    bind *:80
+    bind *:443 ssl crt /etc/letsencrypt/live/www.mydanny.tech/fullchain.pem
+    http-request add-header X-Forwarded-Proto https
+    acl  letsencrypt-acl path_beg /.well-known/acme-challenge/
+    use_backend letsencrypt-backend if letsencrypt-acl
+    default_backend servers
+
+backend www-backend
+    balance  roundrobin
+    http-request redirect scheme https if !{ ssl_fc }
+server 353258-web-01 54.160.78.36:80 check
+    server 353258-web-02 54.209.219.117:80 check
+
+backend letsencrypt-backend
+    server letsencrypt 127.0.0.1:54321
